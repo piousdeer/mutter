@@ -31,6 +31,10 @@
 #include "backends/meta-monitor-manager-private.h"
 #include "wayland/meta-wayland-private.h"
 
+#ifdef HAVE_XWAYLAND
+#include "wayland/meta-xwayland.h"
+#endif
+
 #include "xdg-output-unstable-v1-server-protocol.h"
 
 /* Wayland protocol headers list new additions, not deprecations */
@@ -49,6 +53,8 @@ static guint signals[LAST_SIGNAL];
 struct _MetaWaylandOutput
 {
   GObject parent;
+
+  MetaWaylandCompositor *compositor;
 
   struct wl_global *global;
   uint32_t mode_flags;
@@ -427,6 +433,7 @@ meta_wayland_output_new (MetaWaylandCompositor *compositor,
   MetaWaylandOutput *wayland_output;
 
   wayland_output = g_object_new (META_TYPE_WAYLAND_OUTPUT, NULL);
+  wayland_output->compositor = compositor;
   wayland_output->global = wl_global_create (compositor->wayland_display,
                                              &wl_output_interface,
                                              META_WL_OUTPUT_VERSION,
@@ -601,6 +608,19 @@ static const struct zxdg_output_v1_interface
     meta_xdg_output_destroy,
   };
 
+static gboolean
+is_xwayland_resource (MetaWaylandOutput  *wayland_output,
+                      struct wl_resource *resource)
+{
+#ifdef HAVE_XWAYLAND
+  MetaXWaylandManager *manager = &wayland_output->compositor->xwayland_manager;
+
+  return resource && wl_resource_get_client (resource) == manager->client;
+#else
+  return FALSE;
+#endif
+}
+
 static void
 send_xdg_output_events (struct wl_resource *resource,
                         MetaWaylandOutput  *wayland_output,
@@ -615,8 +635,28 @@ send_xdg_output_events (struct wl_resource *resource,
   logical_monitor = meta_monitor_get_logical_monitor (monitor);
   layout = meta_logical_monitor_get_layout (logical_monitor);
 
-  zxdg_output_v1_send_logical_position (resource, layout.x, layout.y);
-  zxdg_output_v1_send_logical_size (resource, layout.width, layout.height);
+  if (is_xwayland_resource (wayland_output, resource))
+    {
+#ifdef HAVE_XWAYLAND
+      MetaXWaylandManager *xwayland_manager =
+        &wayland_output->compositor->xwayland_manager;
+      int xwayland_scale;
+
+      xwayland_scale = meta_xwayland_get_effective_scale (xwayland_manager);
+      layout.x *= xwayland_scale;
+      layout.y *= xwayland_scale;
+      layout.width *= xwayland_scale;
+      layout.height *= xwayland_scale;
+
+      zxdg_output_v1_send_logical_position (resource, layout.x, layout.y);
+      zxdg_output_v1_send_logical_size (resource, layout.width, layout.height);
+#endif
+    }
+  else
+    {
+      zxdg_output_v1_send_logical_position (resource, layout.x, layout.y);
+      zxdg_output_v1_send_logical_size (resource, layout.width, layout.height);
+    }
 
   version = wl_resource_get_version (resource);
 
@@ -736,7 +776,7 @@ meta_wayland_outputs_init (MetaWaylandCompositor *compositor)
   MetaMonitorManager *monitor_manager =
     meta_backend_get_monitor_manager (backend);
 
-  g_signal_connect (monitor_manager, "monitors-changed-internal",
+  g_signal_connect (monitor_manager, "monitors-changed",
                     G_CALLBACK (on_monitors_changed), compositor);
 
   compositor->outputs =

@@ -745,36 +745,18 @@ meta_wayland_surface_apply_state (MetaWaylandSurface      *surface,
           state->buffer->type != META_WAYLAND_BUFFER_TYPE_SINGLE_PIXEL));
     }
 
-  if (state->scale > 0)
-    surface->scale = state->scale;
-
-  if ((meta_wayland_surface_get_buffer_width (surface) % surface->scale != 0) ||
-      (meta_wayland_surface_get_buffer_height (surface) % surface->scale != 0))
+  if (meta_wayland_surface_is_xwayland (surface))
     {
-      if (surface->role && !META_IS_WAYLAND_CURSOR_SURFACE (surface->role))
-        {
-          wl_resource_post_error (surface->resource, WL_SURFACE_ERROR_INVALID_SIZE,
-                                  "Buffer size (%dx%d) must be an integer multiple "
-                                  "of the buffer_scale (%d).",
-                                  meta_wayland_surface_get_buffer_width (surface),
-                                  meta_wayland_surface_get_buffer_height (surface),
-                                  surface->scale);
-        }
-      else
-        {
-          struct wl_resource *resource = surface->resource;
-          pid_t pid;
+#ifdef HAVE_XWAYLAND
+      MetaXWaylandManager *xwayland_manager =
+        &surface->compositor->xwayland_manager;
 
-          wl_client_get_credentials (wl_resource_get_client (resource), &pid, NULL,
-                                     NULL);
-
-          g_warning ("Bug in client with pid %ld: Cursor buffer size (%dx%d) is "
-                     "not an integer multiple of the buffer_scale (%d).",
-                     (long) pid,
-                     meta_wayland_surface_get_buffer_width (surface),
-                     meta_wayland_surface_get_buffer_height (surface),
-                     surface->scale);
-        }
+      surface->scale = meta_xwayland_get_effective_scale (xwayland_manager);
+#endif
+    }
+  else if (state->scale > 0)
+    {
+      surface->scale = state->scale;
     }
 
   if (state->has_new_buffer_transform)
@@ -1440,6 +1422,16 @@ meta_wayland_surface_update_outputs (MetaWaylandSurface *surface)
   g_hash_table_foreach (surface->compositor->outputs,
                         update_surface_output_state,
                         surface);
+
+  if (meta_wayland_surface_is_xwayland (surface))
+    {
+#ifdef HAVE_XWAYLAND
+      MetaXWaylandManager *xwayland_manager =
+        &surface->compositor->xwayland_manager;
+
+      surface->scale = meta_xwayland_get_effective_scale (xwayland_manager);
+#endif
+    }
 }
 
 void
