@@ -187,13 +187,13 @@ meta_window_x11_protocol_to_stage (MetaWindowX11 *window_x11,
                             stage_width, stage_height);
 }
 
-static CairoRegion *
-region_protocol_to_stage (CairoRegion     *region,
+static cairo_region_t *
+region_protocol_to_stage (cairo_region_t     *region,
                           MetaWindowX11 *window_x11)
 {
   int n_rects, i;
   MtkRectangle *rects;
-  CairoRegion *scaled_region;
+  cairo_region_t *scaled_region;
 
   n_rects = cairo_region_num_rectangles (region);
   MTK_RECTANGLE_CREATE_ARRAY_SCOPED (n_rects, rects);
@@ -2651,7 +2651,7 @@ meta_window_x11_update_input_region (MetaWindow *window)
       else
         {
           /* Window has a custom shape. */
-          g_autoptr (CairoRegion) protocol_region = NULL;
+          g_autoptr (cairo_region_t) protocol_region = NULL;
 
           protocol_region = region_create_from_x_rectangles (rects, n_rects);
           region = region_protocol_to_stage (protocol_region, window_x11);
@@ -2736,7 +2736,7 @@ meta_window_x11_update_shape_region (MetaWindow *window)
 
       if (rects)
         {
-          g_autoptr (CairoRegion) protocol_region = NULL;
+          g_autoptr (cairo_region_t) protocol_region = NULL;
 
           protocol_region = region_create_from_x_rectangles (rects, n_rects);
           region = region_protocol_to_stage (protocol_region, window_x11);
