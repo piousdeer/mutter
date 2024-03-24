@@ -369,7 +369,7 @@ meta_window_xwayland_protocol_to_stage (MetaWindowX11 *window_x11,
   rect.height = protocol_height;
 
   scale = meta_xwayland_get_effective_scale (xwayland_manager);
-  mtk_rectangle_scale_double (&rect, 1.0 / scale, MTK_ROUNDING_STRATEGY_GROW, &rect);
+  meta_rectangle_scale_double (&rect, 1.0 / scale, MTK_ROUNDING_STRATEGY_GROW, &rect);
 
   if (stage_x)
     *stage_x = rect.x;
