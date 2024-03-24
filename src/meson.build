@@ -940,11 +940,6 @@ dbus_interfaces = [
     'prefix': 'org.gnome.Mutter.',
   },
   {
-    'name': 'meta-dbus-debug-control',
-    'interface': 'org.gnome.Mutter.DebugControl.xml',
-    'prefix': 'org.gnome.Mutter',
-  },
-  {
     'name': 'meta-dbus-x11',
     'interface': 'org.gnome.Mutter.X11.xml',
     'prefix': 'org.gnome.Mutter',
