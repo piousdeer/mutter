@@ -187,19 +187,19 @@ meta_window_x11_protocol_to_stage (MetaWindowX11 *window_x11,
                             stage_width, stage_height);
 }
 
-static MtkRegion *
-region_protocol_to_stage (MtkRegion     *region,
+static CairoRegion *
+region_protocol_to_stage (CairoRegion     *region,
                           MetaWindowX11 *window_x11)
 {
   int n_rects, i;
   MtkRectangle *rects;
-  MtkRegion *scaled_region;
+  CairoRegion *scaled_region;
 
-  n_rects = mtk_region_num_rectangles (region);
+  n_rects = cairo_region_num_rectangles (region);
   MTK_RECTANGLE_CREATE_ARRAY_SCOPED (n_rects, rects);
   for (i = 0; i < n_rects; i++)
     {
-      rects[i] = mtk_region_get_rectangle (region, i);
+      rects[i] = cairo_region_get_rectangle (region, i);
       meta_window_x11_protocol_to_stage (window_x11,
                                          rects[i].x, rects[i].y,
                                          rects[i].width, rects[i].height,
@@ -207,7 +207,7 @@ region_protocol_to_stage (MtkRegion     *region,
                                          &rects[i].width, &rects[i].height);
     }
 
-  scaled_region = mtk_region_create_rectangles (rects, n_rects);
+  scaled_region = cairo_region_create_rectangles (rects, n_rects);
 
   return scaled_region;
 }
@@ -2651,7 +2651,7 @@ meta_window_x11_update_input_region (MetaWindow *window)
       else
         {
           /* Window has a custom shape. */
-          g_autoptr (MtkRegion) protocol_region = NULL;
+          g_autoptr (CairoRegion) protocol_region = NULL;
 
           protocol_region = region_create_from_x_rectangles (rects, n_rects);
           region = region_protocol_to_stage (protocol_region, window_x11);
@@ -2736,7 +2736,7 @@ meta_window_x11_update_shape_region (MetaWindow *window)
 
       if (rects)
         {
-          g_autoptr (MtkRegion) protocol_region = NULL;
+          g_autoptr (CairoRegion) protocol_region = NULL;
 
           protocol_region = region_create_from_x_rectangles (rects, n_rects);
           region = region_protocol_to_stage (protocol_region, window_x11);
